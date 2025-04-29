@@ -40,10 +40,10 @@ Int_t circular_fit(){
   Double_t cx_true = -2.0;
   Double_t cy_true = 1.0;
   Double_t r_true  = 1.2;
-  Double_t sigma   = 0.00;
-  Double_t err_lin = 0.05;
+  Double_t sigma   = 0.1;
+  Double_t err_lin = 0.5;
   Double_t phi0    = TMath::Pi()-20.0/180.0*TMath::Pi();
-  Double_t phi_sigma = 0.3*TMath::Pi();
+  Double_t phi_sigma = 0.6*TMath::Pi();
   //
   Double_t cx_reco;
   Double_t cy_reco;
@@ -61,11 +61,11 @@ Int_t circular_fit(){
     TString c1_name = "c1_";
     c1_name += i;
     c1_name += "ev";
-    c1 = new TCanvas(c1_name.Data(),c1_name.Data(), 10, 10, 1000, 1000);
+    c1 = new TCanvas(c1_name.Data(),c1_name.Data(), 10, 10, 1500, 1000);
     
-    cx_true = rnd->Uniform(-3.0,3.0);
-    cy_true = rnd->Uniform(-3.0,3.0);
-    r_true  = rnd->Uniform(0.9,1.2);
+    cx_true = rnd->Uniform(-2.0,2.0);
+    cy_true = rnd->Uniform(-2.0,2.0);
+    r_true  = rnd->Uniform(1.7,2.2);
     phi0    = TMath::Pi() + rnd->Uniform(-180.0,180.0)/180.0*TMath::Pi();
     //
     //
@@ -214,20 +214,27 @@ void run_circular_fit(TCanvas *c1,
   gr_true_c->SetMarkerSize(1);
   gr_true_c->SetMarkerColor(kBlue+2);
   
-  TH2D *h2_data = new TH2D("h2_data","h2_data",70,frame_xmin,frame_xmax,70,frame_ymin,frame_ymax);
+  TH2D *h2_data = new TH2D("h2_data","h2_data",50,frame_xmin,frame_xmax,50,frame_ymin,frame_ymax);
   TH1D *h1_rho = new TH1D("h1_rho","h1_rho",200,0.0,2.0*frame_xmax);
   TH1D *h1_phi = new TH1D("h1_phi","h1_phi",200,-0.05*2.0*TMath::Pi(),1.05*2.0*TMath::Pi());
   
   //
   //
   TVector2 v_tmp;
+  for(Int_t j = 0; j<4; j++){
   for(Int_t i = 0; i<nn_pe; i++){
     //phi = rnd->Uniform(0,2.0*TMath::Pi());
     phi = rnd->Gaus(TMath::Pi()+phi0,phi_sigma);
     rho = rnd->Gaus(r_true,sigma);
     v_tmp.SetMagPhi(rho,phi);
-    x = v_tmp.X() + cx_true + rnd->Uniform(-err_lin,err_lin);
-    y = v_tmp.Y() + cy_true + rnd->Uniform(-err_lin,err_lin);
+    if(j == 0){
+      x = v_tmp.X() + cx_true + rnd->Uniform(-err_lin,err_lin) + 0.5;
+      y = v_tmp.Y() + cy_true + rnd->Uniform(-err_lin,err_lin) - 0.5;
+    }
+    else{
+      x = v_tmp.X() + cx_true;
+      y = v_tmp.Y() + cy_true;
+    }
     //rho = rnd->Uniform(r_true-sigma,r_true+sigma);
     h1_rho->Fill(rho);
     h1_phi->Fill(phi);
@@ -235,7 +242,8 @@ void run_circular_fit(TCanvas *c1,
     gr_weight->SetPoint(gr_weight->GetN(),1.0,1.0);
     h2_data->Fill(x,y);
   }
-
+  }
+  
   for(Int_t i = 0; i<nn_pe_nsb; i++){
     x = rnd->Uniform(frame_xmin,frame_xmax);
     y = rnd->Uniform(frame_ymin,frame_ymax);
@@ -276,7 +284,7 @@ void run_circular_fit(TCanvas *c1,
   
 
   if(c1!=NULL){
-    c1->Divide(2,2);
+    c1->Divide(3,2);
     gStyle->SetPalette(1);
     gStyle->SetFrameBorderMode(0);
     gROOT->ForceStyle();
@@ -307,6 +315,12 @@ void run_circular_fit(TCanvas *c1,
     c1->cd(4);
     h1_phi->Draw();
 
+    c1->cd(5);
+    TMultiGraph *mg02 = new TMultiGraph();
+    mg02->Add(gr_frame);
+    mg02->Add(gr_data);
+    mg02->Draw("ap");
+    
     if(out_name != " ")
       c1->SaveAs(out_name.Data());
   }
@@ -437,16 +451,18 @@ void fcn(int &npar, double *gin, double &f, double *par, int iflag){
 
 void fcn(int &npar, double *gin, double &f, double *par, int iflag){
    double chisq = 0;
-   double x, y;
+   double x, y, w;
    double delta;
    double delta_sum = 0;
    double r2_sum = 0;
    for (int i = 0; i<_n_points; i++){
      _gr_data->GetPoint( i, x, y);
-     delta = equation_of_circle(x, y, par);
+     _gr_weight->GetPoint( i, w, w);
+     w = 1.0;
+     delta = equation_of_circle(x, y, par)*w;
      delta *= delta;
      delta_sum += delta;
-     r2_sum += r2_of_circle(x, y, par);
+     r2_sum += r2_of_circle(x, y, par)*w;
    }
    chisq = delta_sum/4.0/(r2_sum/_n_points);
    //chisq = delta_sum/r2_sum;

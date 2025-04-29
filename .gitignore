@@ -1,7 +1,9 @@
 .*~
+*~
 histOut.root
 histOut_0noise.root
 histOut_taubin_circle_fit.root
 histOut_taubin_circle_fit_mod.root
 histOut_usual.root
 out_pdf/
+c1_all.pdf
