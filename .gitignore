@@ -7,3 +7,5 @@ histOut_taubin_circle_fit_mod.root
 histOut_usual.root
 out_pdf/
 c1_all.pdf
+pull_rreco.pdf
+pull_xreco.pdf
